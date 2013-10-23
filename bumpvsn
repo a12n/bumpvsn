@@ -1,0 +1,20 @@
+#/bin/sh
+
+WHICH=
+case $1 in
+    major|maj|M)
+        WHICH=major
+        ;;
+    minor|min|m)
+        WHICH=minor
+        ;;
+    micro|patch|mic|pat|u|p)
+        WHICH=patch
+        ;;
+    *)
+        echo "Usage: $0 major|minor|patch"
+        exit 1
+        ;;
+esac
+
+# TODO
