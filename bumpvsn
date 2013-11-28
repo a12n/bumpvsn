@@ -1,27 +1,87 @@
-#/bin/sh
+#!/usr/bin/env ruby
 
-WHICH=
-case $1 in
-    major|maj|M)
-        WHICH=major
-        ;;
-    minor|min|m)
-        WHICH=minor
-        ;;
-    micro|patch|mic|pat|u|p)
-        WHICH=patch
-        ;;
-    *)
-        echo "Usage: $0 major|minor|patch"
-        exit 1
-        ;;
-esac
+def bump_vsn(vsn, what = :patch)
+  a, b, c = vsn
+  case what
+  when :major
+    [a + 1, 0, 0]
+  when :minor
+    [a, b + 1, 0]
+  when :patch
+    [a, b, c + 1]
+  end
+end
 
-# TODO
+#----
 
-for x in MAJOR MINOR PATCH; do
-    v=$(sed "/^set(.*$x.*)\$/ s/.* \\([0-9]\\+\\))/\\1/ p; d" CMakeLists.txt)
-    eval $x=$v
-done
+class Basic
+  attr_reader :file
+  def initialize(file)
+    @file = file
+  end
+  def bump(what = :patch)
+    old = self.load
+    new = bump_vsn old, what
+    self.save new
+    [old, new]
+  end
+end
 
-echo $MAJOR.$MINOR.$PATCH
+#----
+
+class Plain < Basic
+  def initialize(file = 'vsn')
+    super(file)
+  end
+  protected
+  def load
+    @data = IO.read @file
+    m = @data.match /\b(\d+)\.(\d+)\.(\d+)\b/
+    m[1..3].map {|x| x.to_i}
+  end
+  def save(vsn)
+    # XXX
+    @data.gsub! /\b\d+\.\d+\.\d+\b/, (vsn.join '.')
+    IO.write @file, @data
+  end
+end
+
+#----
+
+class Cmake < Basic
+  def initialize
+    super('CMakeLists.txt')
+  end
+  protected
+  def load
+    @data = IO.read @file
+    @vars = []
+    vsn = []
+    ['major', 'minor', 'patch'].each do |x|
+      m = @data.match /\bset\((\w*#{x}\w*)\s+(\d+)\)/i
+      @vars.push m[1]
+      vsn.push m[2].to_i
+    end
+    vsn
+  end
+  def save(vsn)
+    @vars.each_with_index do |x, i|
+      @data.gsub! /\bset\(#{x}\s+\d+\)/, "set(#{x} #{vsn[i]})"
+    end
+    IO.write @file, @data
+  end
+end
+
+#----
+
+if __FILE__ == $0 then
+  [Plain, Cmake].each do |c|
+    begin
+      x = c.new
+      old, new = x.bump
+      puts "#{x.file} #{old.join '.'} #{new.join '.'}"
+    rescue
+      nil
+    end
+  end
+end
