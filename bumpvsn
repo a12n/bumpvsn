@@ -75,10 +75,32 @@ end
 #----
 
 if __FILE__ == $0 then
+  what =
+    case ARGV[0]
+    when 'major', 'maj', 'M'
+      :major
+    when 'minor', 'min', 'm'
+      :minor
+    when 'patch', 'pat', 'p'
+      :patch
+    when 'micro', 'mic', 'u'
+      :patch
+    else
+      case
+      when ($0.match /major/i)
+        :major
+      when ($0.match /minor/i)
+        :minor
+      when ($0.match /patch/i)
+        :patch
+      else
+        raise 'Don\'t know which part to bump'
+      end
+    end
   [Plain, Cmake].each do |c|
     begin
       x = c.new
-      old, new = x.bump
+      old, new = x.bump what
       puts "#{x.file} #{old.join '.'} #{new.join '.'}"
     rescue
       nil
