@@ -69,6 +69,14 @@ end
 
 #----
 
+class Rebar < Plain
+  def initialize
+    super(Dir.glob('src/*.app.src')[0])
+  end
+end
+
+#----
+
 class Cmake < Basic
   def initialize
     super('CMakeLists.txt')
@@ -118,7 +126,7 @@ if __FILE__ == $0 then
         raise 'Don\'t know which part to bump'
       end
     end
-  [Plain, Cmake].each do |c|
+  [Plain, Cmake, Rebar].each do |c|
     begin
       x = c.new
       old, new = x.bump what
