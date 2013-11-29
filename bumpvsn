@@ -128,7 +128,7 @@ if __FILE__ == $0 then
       when ($0.match /patch/i)
         :patch
       else
-        raise 'Don\'t know which part to bump'
+        fail 'Don\'t know which part to bump'
       end
     end
   ok = false
