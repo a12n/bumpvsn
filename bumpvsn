@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-def bump_vsn(vsn, what = :patch)
+def bump_vsn vsn, what = :patch
   a, b, c = vsn
   case what
   when :major
@@ -37,10 +37,12 @@ end
 
 class Basic
   attr_reader :file
-  def initialize(file)
+
+  def initialize file
     @file = file
   end
-  def bump(what = :patch)
+
+  def bump what = :patch
     old = self.load
     new = bump_vsn old, what
     self.save new
@@ -51,17 +53,18 @@ end
 #----
 
 class Plain < Basic
-  def initialize(file = 'vsn')
-    super(file)
+  def initialize file = 'vsn'
+    super file
   end
+
   protected
   def load
     @data = IO.read @file
     m = @data.match /\b(\d+)\.(\d+)\.(\d+)\b/
     m[1..3].map {|x| x.to_i}
   end
-  def save(vsn)
-    # XXX
+
+  def save vsn
     @data.gsub! /\b\d+\.\d+\.\d+\b/, (vsn.join '.')
     IO.write @file, @data
   end
@@ -71,16 +74,17 @@ end
 
 class Rebar < Plain
   def initialize
-    super(Dir.glob('src/*.app.src')[0])
+    super (Dir.glob 'src/*.app.src')[0]
   end
 end
 
 #----
 
-class Cmake < Basic
+class CMake < Basic
   def initialize
-    super('CMakeLists.txt')
+    super 'CMakeLists.txt'
   end
+
   protected
   def load
     @data = IO.read @file
@@ -93,7 +97,8 @@ class Cmake < Basic
     end
     vsn
   end
-  def save(vsn)
+
+  def save vsn
     @vars.each_with_index do |x, i|
       @data.gsub! /\bset\(#{x}\s+\d+\)/, "set(#{x} #{vsn[i]})"
     end
@@ -126,7 +131,7 @@ if __FILE__ == $0 then
         raise 'Don\'t know which part to bump'
       end
     end
-  [Plain, Cmake, Rebar].each do |c|
+  [Plain, CMake, Rebar].each do |c|
     begin
       x = c.new
       old, new = x.bump what
