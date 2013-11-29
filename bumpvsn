@@ -92,8 +92,8 @@ class CMake < Basic
     vsn = []
     ['major', 'minor', 'patch'].each do |x|
       m = @data.match /\bset\((\w*#{x}\w*)\s+(\d+)\)/i
-      @vars.push m[1]
-      vsn.push m[2].to_i
+      @vars << m[1]
+      vsn << m[2].to_i
     end
     vsn
   end
