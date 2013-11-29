@@ -131,7 +131,7 @@ if __FILE__ == $0 then
         raise 'Don\'t know which part to bump'
       end
     end
-  [Plain, CMake, Rebar].each do |c|
+  [CMake, Plain, Rebar].each do |c|
     begin
       x = c.new
       old, new = x.bump what
