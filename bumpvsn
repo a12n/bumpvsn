@@ -131,13 +131,16 @@ if __FILE__ == $0 then
         raise 'Don\'t know which part to bump'
       end
     end
+  ok = false
   [CMake, Plain, Rebar].each do |c|
     begin
       x = c.new
       old, new = x.bump what
+      ok = true
       puts "#{x.file} #{old.join '.'} #{new.join '.'}"
     rescue
       nil
     end
   end
+  exit ok
 end
