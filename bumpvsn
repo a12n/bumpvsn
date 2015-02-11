@@ -132,7 +132,7 @@ if __FILE__ == $0 then
       end
     end
   ok = false
-  [CMake.new, Plain.new, Rebar.new].each do |x|
+  [CMake.new, Plain.new, Plain.new('META'), Rebar.new].each do |x|
     begin
       old, new = x.bump what
       ok = true
