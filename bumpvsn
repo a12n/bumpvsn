@@ -132,9 +132,8 @@ if __FILE__ == $0 then
       end
     end
   ok = false
-  [CMake, Plain, Rebar].each do |c|
+  [CMake.new, Plain.new, Rebar.new].each do |x|
     begin
-      x = c.new
       old, new = x.bump what
       ok = true
       puts "#{x.file} #{old.join '.'} #{new.join '.'}"
