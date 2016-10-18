@@ -65,7 +65,7 @@ class Plain < Basic
   end
 
   def save vsn
-    @data.gsub! /\b\d+\.\d+\.\d+\b/, (vsn.join '.')
+    @data.sub! /\b\d+\.\d+\.\d+\b/, (vsn.join '.')
     IO.write @file, @data
   end
 end
