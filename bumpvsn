@@ -132,7 +132,8 @@ if __FILE__ == $0 then
       end
     end
   ok = false
-  [CMake.new, Plain.new, Plain.new('META'), Plain.new('opam'), Rebar.new].each do |x|
+  [CMake.new, Plain.new, Plain.new('META'), Plain.new('opam'),
+   Plain.new('bar-descriptor.xml'), Rebar.new].each do |x|
     begin
       old, new = x.bump what
       ok = true
