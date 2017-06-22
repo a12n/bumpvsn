@@ -1,0 +1,6 @@
+syntax: glob
+
+*.cmi
+*.cmx
+*.o
+bumpvsn
