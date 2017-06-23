@@ -76,7 +76,7 @@ let plain_bump ?(filename="vsn") =
             get_int_group grps 3),
     () in
   let replace text () vsn =
-    Re_ext.replace_string re (Vsn.to_string vsn) text in
+    Re_ext.replace_string ~all:false re ~by:(Vsn.to_string vsn) text in
   bump ~extract ~replace filename
 
 (* ---- *)
@@ -113,8 +113,8 @@ let cmake_bump =
     List.fold_left
       (fun text (var_name, n) ->
          let re = set_cmd_re Re_ext.(str var_name) in
-         Re_ext.replace_string re
-           (Printf.sprintf "set(%s %d)" var_name n) text
+         Re_ext.replace_string ~all:false re
+           ~by:(Printf.sprintf "set(%s %d)" var_name n) text
       ) text [a_var, a; b_var, b; c_var, c] in
   bump ~extract ~replace "CMakeLists.txt"
 
