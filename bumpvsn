@@ -1,6 +1,4 @@
-#!/usr/bin/env ruby
-# -*- coding: utf-8 -*-
-
+#!/usr/bin/env python3
 # Copyright © 2013 Anton Yabchinskiy <arn@bestmx.ru>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,126 +19,119 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-def bump_vsn vsn, what = :patch
-  a, b, c = vsn
-  case what
-  when :major
-    [a + 1, 0, 0]
-  when :minor
-    [a, b + 1, 0]
-  when :patch
-    [a, b, c + 1]
-  end
-end
+import functools
+import glob
+import os.path
+import re
+import sys
 
-#----
+EX_USAGE = 64
+EX_NOINPUT = 66
 
-class Basic
-  attr_reader :file
+MAJOR = 0
+MINOR = 1
+PATCH = 2
 
-  def initialize file
-    @file = file
-  end
+def bumpvsn(vsn, what=PATCH):
+    if what == MAJOR:
+        return (vsn[MAJOR] + 1, 0, 0)
+    elif what == MINOR:
+        return (vsn[MAJOR], vsn[MINOR] + 1, 0)
+    elif what == PATCH:
+        return (vsn[MAJOR], vsn[MINOR], vsn[PATCH] + 1)
+    raise ValueError
 
-  def bump what = :patch
-    old = self.load
-    new = bump_vsn old, what
-    self.save new
-    [old, new]
-  end
-end
+def strvsn(vsn):
+    return '.'.join(map(str, vsn))
 
-#----
+class filterfile:
+    def __init__(self, filename, copyrest=True):
+        self.filename = filename
+        self.copyrest = copyrest
+        self.new = filename + '.new'
 
-class Plain < Basic
-  def initialize file = 'vsn'
-    super file
-  end
+    def __enter__(self):
+        self.f = open(self.filename)
+        self.newf = open(self.new, 'w')
+        return (self.f, self.newf)
 
-  protected
-  def load
-    @data = IO.read @file
-    m = @data.match /\b(\d+)\.(\d+)\.(\d+)\b/
-    m[1..3].map {|x| x.to_i}
-  end
+    def __exit__(self, exc_type, exc_value, traceback):
+        if not exc_type and self.copyrest:
+            for line in self.f:
+                self.newf.write(line)
+        self.newf.close()
+        self.f.close()
+        if not exc_type:
+            os.rename(self.new, self.filename)
+        else:
+            os.unlink(self.new)
 
-  def save vsn
-    @data.sub! /\b\d+\.\d+\.\d+\b/, (vsn.join '.')
-    IO.write @file, @data
-  end
-end
+def plain(filename, what, pattern=r'\bv?(\d+)\.(\d+)\.(\d+)\b'):
+    regexp = re.compile(pattern)
+    with filterfile(filename) as (oldfile, newfile):
+        content = oldfile.read()
+        match = regexp.search(content)
+        if match:
+            old = tuple(map(int, match.group(1, 2, 3)))
+            new = bumpvsn(old, what)
+            newfile.write(content[:match.start(1)])
+            newfile.write(str(new[MAJOR]))
+            newfile.write(content[match.end(1):match.start(2)])
+            newfile.write(str(new[MINOR]))
+            newfile.write(content[match.end(2):match.start(3)])
+            newfile.write(str(new[PATCH]))
+            newfile.write(content[match.end(3):])
+            return filename, old, new
+        else:
+            newfile.write(content)
+    raise ValueError
 
-#----
+def cmake(what):
+    return plain('CMakeLists.txt', what, r'(?is)project\(.+VERSION\s+(\d+)\.(\d+)\.(\d+).*\)')
 
-class Rebar < Plain
-  def initialize
-    super (Dir.glob 'src/*.app.src')[0]
-  end
-end
+def rebar(what):
+    return plain(glob.glob('src/*.app.src')[0], what)
 
-#----
-
-class CMake < Basic
-  def initialize
-    super 'CMakeLists.txt'
-  end
-
-  protected
-  def load
-    @data = IO.read @file
-    @vars = []
-    vsn = []
-    ['major', 'minor', 'patch'].each do |x|
-      m = @data.match /\bset\((\w*#{x}\w*)\s+(\d+)\)/i
-      @vars << m[1]
-      vsn << m[2].to_i
-    end
-    vsn
-  end
-
-  def save vsn
-    @vars.each_with_index do |x, i|
-      @data.gsub! /\bset\(#{x}\s+\d+\)/, "set(#{x} #{vsn[i]})"
-    end
-    IO.write @file, @data
-  end
-end
-
-#----
-
-if __FILE__ == $0 then
-  what =
-    case ARGV[0]
-    when 'major', 'maj', 'M'
-      :major
-    when 'minor', 'min', 'm'
-      :minor
-    when 'patch', 'pat', 'p'
-      :patch
-    when 'micro', 'mic', 'u'
-      :patch
-    else
-      case
-      when ($0.match /major/i)
-        :major
-      when ($0.match /minor/i)
-        :minor
-      when ($0.match /patch/i)
-        :patch
-      else
-        fail 'Don\'t know which part to bump'
-      end
-    end
-  ok = false
-  [CMake.new, Plain.new, Plain.new('META'), Plain.new('opam'),
-   Plain.new('bar-descriptor.xml'), Rebar.new].each do |x|
-    begin
-      old, new = x.bump what
-      ok = true
-      puts "#{x.file} #{old.join '.'} #{new.join '.'}"
-    rescue
-      nil
-    end
-  end
-  exit ok
-end
+if __name__ == '__main__':
+    try:
+        what = {
+            'major': MAJOR,
+            'maj': MAJOR,
+            'M': MAJOR,
+            'minor': MINOR,
+            'min': MINOR,
+            'm': MINOR,
+            'patch': PATCH,
+            'pat': PATCH,
+            'p': PATCH,
+            'micro': PATCH,
+            'mic': PATCH,
+            'u': PATCH,
+        }[sys.argv[1]]
+    except IndexError:
+        progname = os.path.basename(sys.argv[0])
+        if re.search(r'(?i)major', progname):
+            what = MAJOR
+        elif re.search(r'(?i)minor', progname):
+            what = MINOR
+        else:
+            what = PATCH
+    except KeyError:
+        print('Usage:', sys.argv[0], 'major|minor|patch')
+        sys.exit(EX_USAGE)
+    status = EX_NOINPUT
+    for func in [
+            functools.partial(cmake),
+            functools.partial(plain, 'META'),
+            functools.partial(plain, 'bar-descriptor.xml'),
+            functools.partial(plain, 'opam'),
+            functools.partial(plain, 'vsn'),
+            functools.partial(rebar),
+    ]:
+        try:
+            filename, old, new = func(what)
+            status = 0
+            print(filename, strvsn(old), strvsn(new))
+        except:
+            pass
+    sys.exit(status)
