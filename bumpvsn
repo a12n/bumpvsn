@@ -55,7 +55,8 @@ class filterfile:
 
     def __enter__(self):
         self.f = open(self.filename)
-        self.newf = open(self.new, 'w')
+        st = os.fstat(self.f.fileno())
+        self.newf = open(self.new, 'w', opener=lambda path, flags: os.open(path, flags, mode=st.st_mode))
         return (self.f, self.newf)
 
     def __exit__(self, exc_type, exc_value, traceback):
