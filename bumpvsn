@@ -66,7 +66,9 @@ class filterfile:
         else:
             os.unlink(self.new)
 
-def plain(filename, what, pattern=r'\bv?(\d+)\.(\d+)\.(\d+)\b'):
+def plain(filename, what, pattern=None):
+    if not pattern:
+        pattern = r'\bv?(\d+)\.(\d+)\.(\d+)\b'
     with filterfile(filename) as (oldfile, newfile):
         content = oldfile.read()
         match = re.search(pattern, content)
