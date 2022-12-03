@@ -32,6 +32,7 @@ MAJOR = 0
 MINOR = 1
 PATCH = 2
 
+
 def bumpvsn(vsn, what=PATCH):
     if what == MAJOR:
         return (vsn[MAJOR] + 1, 0, 0)
@@ -41,8 +42,10 @@ def bumpvsn(vsn, what=PATCH):
         return (vsn[MAJOR], vsn[MINOR], vsn[PATCH] + 1)
     raise ValueError
 
+
 def strvsn(vsn):
     return '.'.join(map(str, vsn))
+
 
 class filterfile:
     def __init__(self, filename, copyrest=True):
@@ -66,6 +69,7 @@ class filterfile:
         else:
             os.unlink(self.new)
 
+
 def plain(filename, what, pattern=None):
     if not pattern:
         pattern = r'\bv?(\d+)\.(\d+)\.(\d+)\b'
@@ -87,16 +91,25 @@ def plain(filename, what, pattern=None):
             newfile.write(content)
     raise ValueError
 
+
 def cmake(what):
-    return plain('CMakeLists.txt', what, r'(?is)project\(.+VERSION\s+(\d+)\.(\d+)\.(\d+).*\)')
+    return plain('CMakeLists.txt', what,
+                 r'(?is)project\(.+VERSION\s+(\d+)\.(\d+)\.(\d+).*\)')
+
 
 def rebar(what):
     return plain(glob.glob('src/*.app.src')[0], what)
 
+
 def envfuncs():
     filename = os.environ.get('BUMPVSN_FILENAME')
     if filename:
-        return [functools.partial(plain, filename, pattern=os.environ.get('BUMPVSN_PATTERN'))]
+        return [
+            functools.partial(plain,
+                              filename,
+                              pattern=os.environ.get('BUMPVSN_PATTERN'))
+        ]
+
 
 def configfuncs(config='.bumpvsn'):
     try:
@@ -106,18 +119,24 @@ def configfuncs(config='.bumpvsn'):
                 if not line or line.startswith('#'):
                     continue
                 try:
-                    parts = tuple(filter(bool, map(str.strip, line.split('\t'))))
+                    parts = tuple(
+                        filter(bool, map(str.strip, line.split('\t'))))
                     if len(parts) == 1:
                         funcs.append(functools.partial(plain, parts[0]))
                     elif len(parts) == 2:
-                        funcs.append(functools.partial(plain, parts[0], pattern=parts[1]))
+                        funcs.append(
+                            functools.partial(plain,
+                                              parts[0],
+                                              pattern=parts[1]))
                     else:
                         raise ValueError
                 except ValueError:
-                    print('Error parsing line "{}"'.format(line), file=sys.stderr)
+                    print('Error parsing line "{}"'.format(line),
+                          file=sys.stderr)
         return funcs
     except FileNotFoundError:
         return None
+
 
 if __name__ == '__main__':
     try:
@@ -149,12 +168,12 @@ if __name__ == '__main__':
 
     status = EX_NOINPUT
     for func in envfuncs() or configfuncs() or [
-        functools.partial(cmake),
-        functools.partial(plain, 'META'),
-        functools.partial(plain, 'bar-descriptor.xml'),
-        functools.partial(plain, 'opam'),
-        functools.partial(plain, 'vsn'),
-        functools.partial(rebar),
+            functools.partial(cmake),
+            functools.partial(plain, 'META'),
+            functools.partial(plain, 'bar-descriptor.xml'),
+            functools.partial(plain, 'opam'),
+            functools.partial(plain, 'vsn'),
+            functools.partial(rebar),
     ]:
         try:
             filename, old, new = func(what)
