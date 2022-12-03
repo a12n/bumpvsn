@@ -93,23 +93,26 @@ def cmake(what):
 def rebar(what):
     return plain(glob.glob('src/*.app.src')[0], what)
 
-def readconfig(config='.bumpvsn'):
-    funcs = []
-    with open(config) as f:
-        for line in map(str.strip, f):
-            if not line or line.startswith('#'):
-                continue
-            try:
-                parts = tuple(filter(bool, map(str.strip, line.split('\t'))))
-                if len(parts) == 1:
-                    funcs.append(functools.partial(plain, parts[0]))
-                elif len(parts) == 2:
-                    funcs.append(functools.partial(plain, parts[0], pattern=parts[1]))
-                else:
-                    raise ValueError
-            except ValueError:
-                print('Error parsing line "{}"'.format(line), file=sys.stderr)
-    return funcs
+def configfuncs(config='.bumpvsn'):
+    try:
+        funcs = []
+        with open(config) as f:
+            for line in map(str.strip, f):
+                if not line or line.startswith('#'):
+                    continue
+                try:
+                    parts = tuple(filter(bool, map(str.strip, line.split('\t'))))
+                    if len(parts) == 1:
+                        funcs.append(functools.partial(plain, parts[0]))
+                    elif len(parts) == 2:
+                        funcs.append(functools.partial(plain, parts[0], pattern=parts[1]))
+                    else:
+                        raise ValueError
+                except ValueError:
+                    print('Error parsing line "{}"'.format(line), file=sys.stderr)
+        return funcs
+    except FileNotFoundError:
+        return None
 
 if __name__ == '__main__':
     try:
@@ -138,19 +141,16 @@ if __name__ == '__main__':
     except KeyError:
         print('Usage:', sys.argv[0], 'major|minor|patch')
         sys.exit(EX_USAGE)
-    try:
-        funcs = readconfig()
-    except FileNotFoundError:
-        funcs = [
-            functools.partial(cmake),
-            functools.partial(plain, 'META'),
-            functools.partial(plain, 'bar-descriptor.xml'),
-            functools.partial(plain, 'opam'),
-            functools.partial(plain, 'vsn'),
-            functools.partial(rebar),
-        ]
+
     status = EX_NOINPUT
-    for func in funcs:
+    for func in configfuncs() or [
+        functools.partial(cmake),
+        functools.partial(plain, 'META'),
+        functools.partial(plain, 'bar-descriptor.xml'),
+        functools.partial(plain, 'opam'),
+        functools.partial(plain, 'vsn'),
+        functools.partial(rebar),
+    ]:
         try:
             filename, old, new = func(what)
             status = 0
