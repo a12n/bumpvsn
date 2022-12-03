@@ -93,6 +93,11 @@ def cmake(what):
 def rebar(what):
     return plain(glob.glob('src/*.app.src')[0], what)
 
+def envfuncs():
+    filename = os.environ.get('BUMPVSN_FILENAME')
+    if filename:
+        return [functools.partial(plain, filename, pattern=os.environ.get('BUMPVSN_PATTERN'))]
+
 def configfuncs(config='.bumpvsn'):
     try:
         funcs = []
@@ -143,7 +148,7 @@ if __name__ == '__main__':
         sys.exit(EX_USAGE)
 
     status = EX_NOINPUT
-    for func in configfuncs() or [
+    for func in envfuncs() or configfuncs() or [
         functools.partial(cmake),
         functools.partial(plain, 'META'),
         functools.partial(plain, 'bar-descriptor.xml'),
