@@ -151,6 +151,7 @@ if __name__ == '__main__':
             functools.partial(plain, 'META'),
             functools.partial(plain, 'bar-descriptor.xml'),
             functools.partial(plain, 'opam'),
+            functools.partial(plain, 'dune-project', pattern='\(\s*version\s+(\d+)\.(\d+)\.(\d+)\s*\)'),
             functools.partial(plain, 'vsn'),
             functools.partial(rebar),
     ]:
